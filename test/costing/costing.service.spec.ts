@@ -102,4 +102,36 @@ describe('CostingService', () => {
     component(w, 'b', 'a', '1', 'g');
     await expect(engine(w).computeCost('a')).rejects.toBeInstanceOf(CircularReferenceError);
   });
+
+  it('9. diamond dependency (shared component, not a cycle) computes without error', async () => {
+    const w = emptyWorld();
+    purchased(w, 'flour', 'g', '10', '1', 'g'); // 10/g
+    // two intermediate produced items both using flour
+    produced(w, 'doughA', 'g', '1', 'g');
+    component(w, 'doughA', 'flour', '1', 'g');   // 10/g
+    produced(w, 'doughB', 'g', '1', 'g');
+    component(w, 'doughB', 'flour', '2', 'g');   // 20/g
+    // top item uses BOTH (flour is reached via two branches: a diamond, not a cycle)
+    produced(w, 'pastry', 'pcs', '1', 'pcs');
+    component(w, 'pastry', 'doughA', '1', 'g');  // 10
+    component(w, 'pastry', 'doughB', '1', 'g');  // 20
+    const node = await engine(w).computeCost('pastry');
+    expect(node.breakdown!.materialCost).toBe(30);
+    expect(node.unitCost).toBe(30);
+  });
+
+  it('10. multi-level precision: no rounding drift through intermediate levels', async () => {
+    const w = emptyWorld();
+    // 1000 / 7 per g = 142.857142...  (non-terminating)
+    purchased(w, 'spice', 'g', '1000', '7', 'g');
+    produced(w, 'mix', 'g', '1', 'g');
+    component(w, 'mix', 'spice', '1', 'g');      // mix unitCost = 1000/7 exact internally
+    produced(w, 'blend', 'g', '7', 'g');         // uses 7g of mix -> 7 * (1000/7) = 1000 exactly
+    component(w, 'blend', 'mix', '7', 'g');
+    const node = await engine(w).computeCost('blend');
+    // If intermediate were rounded to 4dp (142.8571), 7*142.8571 = 999.9997 -> would NOT be 1000.
+    // With exact Decimal carried through: 7 * 1000/7 = 1000 exactly, /7 yield = 142.8571 rounded.
+    expect(node.breakdown!.materialCost).toBe(1000);
+    expect(node.unitCost).toBe(142.8571); // round(1000/7, 4)
+  });
 });

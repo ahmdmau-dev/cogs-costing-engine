@@ -1,4 +1,4 @@
-import { D, round } from '../common/decimal.util';
+import { D, Decimal, round } from '../common/decimal.util';
 import { UnitConverter } from '../units/unit-converter';
 import { ItemType } from '../items/item.entity';
 import { CostType } from '../process-costs/process-cost.entity';
@@ -6,6 +6,8 @@ import { CostNode, ProcessLine } from './cost-node.interface';
 import {
   CostingGateway, PriceOverride, CircularReferenceError, ItemNotFoundError, MissingPriceError,
 } from './costing.gateway';
+
+interface ComputeResult { node: CostNode; unitCostExact: Decimal }
 
 export class CostingService {
   constructor(
@@ -17,6 +19,13 @@ export class CostingService {
     itemId: string,
     opts: { pathSet?: Set<string>; priceOverride?: PriceOverride } = {},
   ): Promise<CostNode> {
+    return (await this.computeNode(itemId, opts)).node;
+  }
+
+  private async computeNode(
+    itemId: string,
+    opts: { pathSet?: Set<string>; priceOverride?: PriceOverride } = {},
+  ): Promise<ComputeResult> {
     const pathSet = opts.pathSet ?? new Set<string>();
     const item = await this.gateway.getItem(itemId);
     if (!item) throw new ItemNotFoundError(itemId);
@@ -33,7 +42,7 @@ export class CostingService {
   private async computePurchased(
     item: { id: string; name: string; baseUnit: string },
     override?: PriceOverride,
-  ): Promise<CostNode> {
+  ): Promise<ComputeResult> {
     const price =
       override && override.itemId === item.id
         ? { price: override.price, purchaseQuantity: override.purchaseQuantity, purchaseUnit: override.purchaseUnit }
@@ -42,31 +51,32 @@ export class CostingService {
 
     const factor = await this.converter.factor(price.purchaseUnit, item.baseUnit, item.id);
     const qtyInBase = D(price.purchaseQuantity).mul(factor);
-    const unitCost = D(price.price).div(qtyInBase);
-    return {
+    const unitCostExact = D(price.price).div(qtyInBase);
+    const node: CostNode = {
       itemId: item.id, name: item.name, type: ItemType.PURCHASED, baseUnit: item.baseUnit,
-      unitCost: round(unitCost, 4),
+      unitCost: round(unitCostExact, 4),
     };
+    return { node, unitCostExact };
   }
 
   private async computeProduced(
     item: { id: string; name: string; baseUnit: string; yieldQuantity: string | null; yieldUnit: string | null },
     pathSet: Set<string>,
     override?: PriceOverride,
-  ): Promise<CostNode> {
+  ): Promise<ComputeResult> {
     const components = await this.gateway.getComponents(item.id);
     const childNodes: CostNode[] = [];
     let materialCost = D(0);
 
     for (const c of components) {
-      const child = await this.computeCost(c.componentItemId, { pathSet, priceOverride: override });
-      const convFactor = await this.converter.factor(c.unit, child.baseUnit, c.componentItemId);
+      const childResult = await this.computeNode(c.componentItemId, { pathSet, priceOverride: override });
+      const convFactor = await this.converter.factor(c.unit, childResult.node.baseUnit, c.componentItemId);
       const qtyInBase = D(c.quantity).mul(convFactor);
       const grossQty = qtyInBase.div(D(c.wasteFactor));
-      const lineCost = D(child.unitCost).mul(grossQty);
+      const lineCost = childResult.unitCostExact.mul(grossQty);
       materialCost = materialCost.plus(lineCost);
       childNodes.push({
-        ...child,
+        ...childResult.node,
         quantity: round(D(c.quantity), 4),
         unit: c.unit,
         grossQuantity: round(grossQty, 4),
@@ -100,11 +110,11 @@ export class CostingService {
     }
 
     const totalBatch = base.plus(pctTotal);
-    const unitCost = totalBatch.div(yieldQty);
+    const unitCostExact = totalBatch.div(yieldQty);
 
-    return {
+    const node: CostNode = {
       itemId: item.id, name: item.name, type: ItemType.PRODUCED, baseUnit: item.baseUnit,
-      unitCost: round(unitCost, 4),
+      unitCost: round(unitCostExact, 4),
       breakdown: {
         materialCost: round(materialCost),
         process: {
@@ -119,5 +129,6 @@ export class CostingService {
         components: childNodes,
       },
     };
+    return { node, unitCostExact };
   }
 }
