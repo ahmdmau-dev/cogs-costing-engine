@@ -56,3 +56,38 @@ export class MissingPriceError extends Error {
     this.name = 'MissingPriceError';
   }
 }
+
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Item } from '../items/item.entity';
+import { ItemComponent } from '../components/item-component.entity';
+import { PurchasePrice } from '../pricing/purchase-price.entity';
+import { ProcessCost } from '../process-costs/process-cost.entity';
+
+@Injectable()
+export class TypeOrmCostingGateway implements CostingGateway {
+  constructor(
+    @InjectRepository(Item) private readonly items: Repository<Item>,
+    @InjectRepository(ItemComponent) private readonly components: Repository<ItemComponent>,
+    @InjectRepository(PurchasePrice) private readonly prices: Repository<PurchasePrice>,
+    @InjectRepository(ProcessCost) private readonly processCosts: Repository<ProcessCost>,
+  ) {}
+
+  async getItem(id: string): Promise<ItemData | null> {
+    const i = await this.items.findOne({ where: { id } });
+    return i ? { id: i.id, name: i.name, type: i.type, baseUnit: i.baseUnit, yieldQuantity: i.yieldQuantity, yieldUnit: i.yieldUnit } : null;
+  }
+  async getComponents(parentId: string): Promise<ComponentData[]> {
+    const rows = await this.components.find({ where: { parentItemId: parentId } });
+    return rows.map((r) => ({ componentItemId: r.componentItemId, quantity: r.quantity, unit: r.unit, wasteFactor: r.wasteFactor }));
+  }
+  async getLatestPrice(itemId: string): Promise<PriceData | null> {
+    const p = await this.prices.findOne({ where: { itemId }, order: { effectiveDate: 'DESC', createdAt: 'DESC' } });
+    return p ? { price: p.price, purchaseQuantity: p.purchaseQuantity, purchaseUnit: p.purchaseUnit } : null;
+  }
+  async getProcessCosts(itemId: string): Promise<ProcessCostData[]> {
+    const rows = await this.processCosts.find({ where: { itemId } });
+    return rows.map((r) => ({ label: r.label, costType: r.costType, value: r.value }));
+  }
+}
