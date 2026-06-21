@@ -23,6 +23,7 @@
   "dependencies": {
     "@nestjs/common": "^11.1.27",
     "@nestjs/core": "^11.1.27",
+    "@nestjs/mapped-types": "^2.1.1",
     "@nestjs/platform-express": "^11.1.27",
     "@nestjs/typeorm": "^11.0.2",
     "class-transformer": "^0.5.1",
