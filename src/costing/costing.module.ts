@@ -8,9 +8,11 @@ import { UnitsModule } from '../units/units.module';
 import { UnitConverter } from '../units/unit-converter';
 import { COSTING_GATEWAY, TypeOrmCostingGateway, CostingGateway } from './costing.gateway';
 import { CostingService } from './costing.service';
+import { CostingController } from './costing.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Item, ItemComponent, PurchasePrice, ProcessCost]), UnitsModule],
+  controllers: [CostingController],
   providers: [
     { provide: COSTING_GATEWAY, useClass: TypeOrmCostingGateway },
     {

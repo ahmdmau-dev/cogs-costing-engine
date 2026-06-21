@@ -19,6 +19,10 @@ export function costingGateway(w: World): CostingGateway {
     getComponents: async (id) => w.components[id] ?? [],
     getLatestPrice: async (id) => w.prices[id] ?? null,
     getProcessCosts: async (id) => w.processCosts[id] ?? [],
+    getDirectParents: async (id) =>
+      Object.entries(w.components)
+        .filter(([, list]) => list.some((c) => c.componentItemId === id))
+        .map(([parent]) => parent),
   };
 }
 

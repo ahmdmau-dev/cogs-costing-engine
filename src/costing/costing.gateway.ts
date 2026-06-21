@@ -34,6 +34,8 @@ export interface CostingGateway {
   getComponents(parentId: string): Promise<ComponentData[]>;
   getLatestPrice(itemId: string): Promise<PriceData | null>;
   getProcessCosts(itemId: string): Promise<ProcessCostData[]>;
+  // direct parents that list itemId as a component
+  getDirectParents(itemId: string): Promise<string[]>;
 }
 
 export const COSTING_GATEWAY = Symbol('COSTING_GATEWAY');
@@ -89,5 +91,9 @@ export class TypeOrmCostingGateway implements CostingGateway {
   async getProcessCosts(itemId: string): Promise<ProcessCostData[]> {
     const rows = await this.processCosts.find({ where: { itemId } });
     return rows.map((r) => ({ label: r.label, costType: r.costType, value: r.value }));
+  }
+  async getDirectParents(itemId: string): Promise<string[]> {
+    const rows = await this.components.find({ where: { componentItemId: itemId } });
+    return [...new Set(rows.map((r) => r.parentItemId))];
   }
 }

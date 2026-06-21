@@ -134,4 +134,23 @@ describe('CostingService', () => {
     expect(node.breakdown!.materialCost).toBe(1000);
     expect(node.unitCost).toBe(142.8571); // round(1000/7, 4)
   });
+
+  it('11. preview: price change ripples to all transitive parents', async () => {
+    const w = emptyWorld();
+    purchased(w, 'flour', 'g', '10', '1', 'g'); // 10/g
+    produced(w, 'dough', 'g', '1000', 'g');
+    component(w, 'dough', 'flour', '500', 'g');  // 5000/1000 = 5/g
+    produced(w, 'donut', 'pcs', '10', 'pcs');
+    component(w, 'donut', 'dough', '200', 'g');  // 200*5 = 1000 -> 100/donut
+    const svc = engine(w);
+    const affected = await svc.previewPriceChange({
+      itemId: 'flour', price: '20', purchaseQuantity: '1', purchaseUnit: 'g', // double price
+    });
+    const byId = Object.fromEntries(affected.map((a) => [a.itemId, a]));
+    expect(byId['dough'].oldUnitCost).toBe(5);
+    expect(byId['dough'].newUnitCost).toBe(10);
+    expect(byId['donut'].oldUnitCost).toBe(100);
+    expect(byId['donut'].newUnitCost).toBe(200);
+    expect(byId['donut'].delta).toBe(100);
+  });
 });

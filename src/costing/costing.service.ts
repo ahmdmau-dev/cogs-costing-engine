@@ -22,6 +22,35 @@ export class CostingService {
     return (await this.computeNode(itemId, opts)).node;
   }
 
+  async previewPriceChange(override: PriceOverride) {
+    const affectedIds = await this.collectTransitiveParents(override.itemId);
+    const results: Array<{ itemId: string; name: string; oldUnitCost: number; newUnitCost: number; delta: number }> = [];
+    for (const id of affectedIds) {
+      const before = await this.computeCost(id);
+      const after = await this.computeCost(id, { priceOverride: override });
+      results.push({
+        itemId: id,
+        name: before.name,
+        oldUnitCost: before.unitCost,
+        newUnitCost: after.unitCost,
+        delta: round(D(after.unitCost).minus(D(before.unitCost)), 4),
+      });
+    }
+    return results;
+  }
+
+  private async collectTransitiveParents(itemId: string): Promise<string[]> {
+    const found = new Set<string>();
+    const visit = async (id: string) => {
+      const parents = await this.gateway.getDirectParents(id);
+      for (const p of parents) {
+        if (!found.has(p)) { found.add(p); await visit(p); }
+      }
+    };
+    await visit(itemId);
+    return [...found];
+  }
+
   private async computeNode(
     itemId: string,
     opts: { pathSet?: Set<string>; priceOverride?: PriceOverride } = {},
