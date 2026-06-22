@@ -1,8 +1,9 @@
-import { IsNumberString, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsPositiveNumberString } from '../../common/is-positive-number-string.validator';
 
 export class CreateComponentDto {
   @IsUUID() componentItemId: string;
-  @IsNumberString() quantity: string;
+  @IsPositiveNumberString() quantity: string;
   @IsString() unit: string;
-  @IsOptional() @IsNumberString() wasteFactor?: string;
+  @IsOptional() @IsPositiveNumberString(1) wasteFactor?: string;
 }

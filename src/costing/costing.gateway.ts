@@ -58,6 +58,12 @@ export class MissingPriceError extends Error {
     this.name = 'MissingPriceError';
   }
 }
+export class InvalidCostInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidCostInputError';
+  }
+}
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

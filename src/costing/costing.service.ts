@@ -4,7 +4,7 @@ import { ItemType } from '../items/item.entity';
 import { CostType } from '../process-costs/process-cost.entity';
 import { CostNode, ProcessLine } from './cost-node.interface';
 import {
-  CostingGateway, PriceOverride, CircularReferenceError, ItemNotFoundError, MissingPriceError,
+  CostingGateway, PriceOverride, CircularReferenceError, ItemNotFoundError, MissingPriceError, InvalidCostInputError,
 } from './costing.gateway';
 
 interface ComputeResult { node: CostNode; unitCostExact: Decimal }
@@ -80,6 +80,7 @@ export class CostingService {
 
     const factor = await this.converter.factor(price.purchaseUnit, item.baseUnit, item.id);
     const qtyInBase = D(price.purchaseQuantity).mul(factor);
+    if (qtyInBase.lte(0)) throw new InvalidCostInputError(`Item ${item.id}: purchaseQuantity × conversion must be > 0`);
     const unitCostExact = D(price.price).div(qtyInBase);
     const node: CostNode = {
       itemId: item.id, name: item.name, type: ItemType.PURCHASED, baseUnit: item.baseUnit,
@@ -99,6 +100,7 @@ export class CostingService {
 
     for (const c of components) {
       const childResult = await this.computeNode(c.componentItemId, { pathSet, priceOverride: override });
+      if (D(c.wasteFactor).lte(0)) throw new InvalidCostInputError(`Component ${c.componentItemId}: wasteFactor must be > 0`);
       const convFactor = await this.converter.factor(c.unit, childResult.node.baseUnit, c.componentItemId);
       const qtyInBase = D(c.quantity).mul(convFactor);
       const grossQty = qtyInBase.div(D(c.wasteFactor));
@@ -114,6 +116,7 @@ export class CostingService {
     }
 
     const yieldQty = item.yieldQuantity ? D(item.yieldQuantity) : D(1);
+    if (yieldQty.lte(0)) throw new InvalidCostInputError(`Item ${item.id}: yieldQuantity must be > 0`);
     const processCosts = await this.gateway.getProcessCosts(item.id);
 
     let fixedTotal = D(0);

@@ -2,12 +2,16 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ItemComponent } from './item-component.entity';
+import { Item, ItemType } from '../items/item.entity';
 import { CreateComponentDto } from './dto/create-component.dto';
 import { wouldCreateCycle } from './cycle.util';
 
 @Injectable()
 export class ComponentsService {
-  constructor(@InjectRepository(ItemComponent) private readonly repo: Repository<ItemComponent>) {}
+  constructor(
+    @InjectRepository(ItemComponent) private readonly repo: Repository<ItemComponent>,
+    @InjectRepository(Item) private readonly items: Repository<Item>,
+  ) {}
 
   private ancestorsOf = async (id: string): Promise<string[]> => {
     const result = new Set<string>();
@@ -25,6 +29,11 @@ export class ComponentsService {
   };
 
   async create(parentItemId: string, dto: CreateComponentDto) {
+    const parent = await this.items.findOne({ where: { id: parentItemId } });
+    if (!parent) throw new NotFoundException(`Item ${parentItemId} not found`);
+    if (parent.type !== ItemType.PRODUCED) throw new BadRequestException('Components can only be added to PRODUCED items');
+    const componentItem = await this.items.findOne({ where: { id: dto.componentItemId } });
+    if (!componentItem) throw new NotFoundException(`Item ${dto.componentItemId} not found`);
     if (await wouldCreateCycle(parentItemId, dto.componentItemId, this.ancestorsOf)) {
       throw new BadRequestException('This component would create a circular reference');
     }

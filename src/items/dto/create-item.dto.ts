@@ -1,5 +1,6 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsNumberString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ItemType } from '../item.entity';
+import { IsPositiveNumberString } from '../../common/is-positive-number-string.validator';
 
 export class CreateItemDto {
   @IsString() @IsNotEmpty() name: string;
@@ -7,6 +8,6 @@ export class CreateItemDto {
   @IsString() @IsNotEmpty() baseUnit: string;
   @IsOptional() @IsString() category?: string;
   @IsOptional() @IsString() notes?: string;
-  @IsOptional() @IsNumberString() yieldQuantity?: string;
+  @IsOptional() @IsPositiveNumberString() yieldQuantity?: string;
   @IsOptional() @IsString() yieldUnit?: string;
 }

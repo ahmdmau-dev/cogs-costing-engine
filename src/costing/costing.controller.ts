@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { CostingService } from './costing.service';
 import { PreviewDto } from './dto/preview.dto';
-import { CircularReferenceError, ItemNotFoundError, MissingPriceError } from './costing.gateway';
+import { CircularReferenceError, ItemNotFoundError, MissingPriceError, InvalidCostInputError } from './costing.gateway';
 
 @Controller()
 export class CostingController {
@@ -27,7 +27,7 @@ export class CostingController {
 
   private translate(e: unknown): never {
     if (e instanceof ItemNotFoundError) throw new NotFoundException(e.message);
-    if (e instanceof CircularReferenceError || e instanceof MissingPriceError) throw new BadRequestException(e.message);
+    if (e instanceof CircularReferenceError || e instanceof MissingPriceError || e instanceof InvalidCostInputError) throw new BadRequestException(e.message);
     throw e;
   }
 }
