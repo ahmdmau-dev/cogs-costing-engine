@@ -4,6 +4,7 @@ export class Init1781930385609 implements MigrationInterface {
     name = 'Init1781930385609'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
         await queryRunner.query(`CREATE TABLE "item_components" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "parentItemId" uuid NOT NULL, "componentItemId" uuid NOT NULL, "quantity" numeric(18,4) NOT NULL, "unit" character varying NOT NULL, "wasteFactor" numeric(18,4) NOT NULL DEFAULT '1', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_c61299d4485904d94c1784d4c9f" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_12ad87ade912860c9a51228557" ON "item_components"  ("parentItemId") `);
         await queryRunner.query(`CREATE TYPE "public"."items_type_enum" AS ENUM('PURCHASED', 'PRODUCED')`);
@@ -29,6 +30,7 @@ export class Init1781930385609 implements MigrationInterface {
         await queryRunner.query(`DROP TYPE "public"."items_type_enum"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_12ad87ade912860c9a51228557"`);
         await queryRunner.query(`DROP TABLE "item_components"`);
+        await queryRunner.query(`DROP EXTENSION IF EXISTS "uuid-ossp"`);
     }
 
 }
