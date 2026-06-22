@@ -10,12 +10,14 @@
 
 **Backend reference (Phase 1, unchanged):** base URL `NEXT_PUBLIC_API_BASE_URL` (dev: `http://localhost:3000`). Routes: `GET/POST/PATCH/DELETE /items`, `GET/POST /items/:id/components`, `DELETE /components/:id`, `GET/POST /items/:id/prices`, `GET/POST /items/:id/process-costs`, `DELETE /process-costs/:id`, `GET/POST /unit-conversions`, `GET /items/:id/conversions`, `DELETE /unit-conversions/:id`, `GET /items/:id/cost`, `POST /cost/preview`. All numeric/money fields are JSON strings on write; cost endpoints return numbers.
 
+> **REPO LAYOUT (updated 2026-06-22):** the frontend is a **STANDALONE repository** at `/Users/ictkapalapiglobal/Sites/cogs-web` (separate from the backend repo). Throughout this plan, paths written as `web/X` mean **the frontend repo root** — drop the `web/` prefix when creating files (e.g. `web/lib/format.ts` → `<cogs-web>/lib/format.ts`, `web/app/page.tsx` → `<cogs-web>/app/page.tsx`). Task 1 scaffolds the Next.js app directly at the repo root (create-next-app initializes its own git repo). All `cd web` commands mean "from the frontend repo root".
+
 ---
 
 ## File Structure
 
 ```
-web/
+cogs-web/   (= the "web/" prefix used in tasks below)
   package.json, tsconfig.json, next.config.ts, postcss.config.mjs, .env.local, .env.example
   vitest.config.ts, vitest.setup.ts
   tailwind.config.ts, app/globals.css
@@ -52,17 +54,17 @@ web/
 
 ---
 
-## Task 1: Scaffold Next.js app in /web
+## Task 1: Scaffold standalone Next.js repo (cogs-web)
 
-**Files:** Create `web/` via create-next-app, then `web/.env.local`, `web/.env.example`.
+**Files:** Create the `cogs-web` repo via create-next-app, then `.env.local`, `.env.example` at its root.
 
 - [ ] **Step 1: Scaffold**
 
-Run from repo root:
+Run from `/Users/ictkapalapiglobal/Sites`:
 ```bash
-npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir=false --import-alias "@/*" --no-turbopack --use-npm
+npx --yes create-next-app@latest cogs-web --typescript --tailwind --eslint --app --src-dir=false --import-alias "@/*" --no-turbopack --use-npm
 ```
-Accept defaults. This creates `web/` with App Router, Tailwind, `@/*` alias.
+This creates `/Users/ictkapalapiglobal/Sites/cogs-web` with App Router, Tailwind, `@/*` alias, and its OWN initialized git repo (create-next-app runs `git init` + an initial commit). All subsequent tasks operate inside this repo root (the plan's `web/` prefix = this root).
 
 - [ ] **Step 2: Write `web/.env.example` and `web/.env.local`**
 

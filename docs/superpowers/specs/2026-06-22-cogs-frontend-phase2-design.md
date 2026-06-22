@@ -35,27 +35,26 @@ Phase 2 builds the web client the real user (an Indonesian F&B owner) will actua
 
 ## 3. Repo Layout
 
-Same repository, new `/web` subfolder (the NestJS backend stays at repo root). Versioned together; can be promoted to a Turborepo monorepo later if a second app/shared package appears. No backend restructure in this phase.
+**Standalone repository** (separate from the backend `cogs-costing-engine` repo). The frontend lives in its own repo at `/Users/ictkapalapiglobal/Sites/cogs-web` and talks to the backend over HTTP only (base URL via env). Decision: keep the two codebases cleanly separated rather than mixing frontend into the backend repo. The Next.js app is scaffolded at the repo root (no `web/` subfolder).
 
 ```
-/ (repo root = NestJS backend)
-  src/ ...                    # backend (unchanged)
-  web/                        # Next.js app (new)
-    app/
-      layout.tsx              # sidebar shell
-      page.tsx                # redirect → /items
-      items/
-        page.tsx              # catalog
-        [id]/page.tsx         # item detail (tabbed)
-      simulasi/page.tsx       # price-change ripple
-      konversi/page.tsx       # unit conversions admin
-    components/               # shared UI (sidebar, tables, cost-tree, dialogs)
-    lib/
-      api/                    # typed fetch client + endpoint fns
-      query/                  # query keys + hooks (useItems, useCost, …)
-      format.ts               # IDR + number formatting
-      vocab.ts                # UI label mapping
-    components/ui/            # shadcn/ui generated primitives
+cogs-web/                     # repo root = Next.js app
+  app/
+    layout.tsx                # sidebar shell
+    page.tsx                  # redirect → /items
+    items/
+      page.tsx                # catalog
+      [id]/page.tsx           # item detail (tabbed)
+    simulasi/page.tsx         # price-change ripple
+    konversi/page.tsx         # unit conversions admin
+  components/                 # shared UI (sidebar, tables, cost-tree, dialogs)
+  components/ui/              # shadcn/ui generated primitives
+  lib/
+    api/                      # typed fetch client + endpoint fns
+    query/                    # query keys + hooks (useItems, useCost, …)
+    format.ts                 # IDR + number formatting
+    vocab.ts                  # UI label mapping
+  test/                       # vitest unit tests
 ```
 
 ## 4. Data Layer
